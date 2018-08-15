@@ -26,6 +26,8 @@ import org.apache.orc.TypeDescription;
 import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapreduce.OrcOutputFormat;
 
+import com.beans.ko.etl.mapreduce.utils.HBaseUtils;
+
 
 public class HBaseHFile{
 

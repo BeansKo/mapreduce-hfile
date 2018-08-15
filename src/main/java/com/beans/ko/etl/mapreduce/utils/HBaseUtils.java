@@ -1,4 +1,4 @@
-package com.beans.ko.etl.mapreduce.hfile;
+package com.beans.ko.etl.mapreduce.utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
