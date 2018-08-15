@@ -50,7 +50,7 @@ public class HBaseHFile{
 			//本地windows提交方式，设定"submission.cross-platform",提前打包准备好jar包
 			conf.set("mapreduce.app-submission.cross-platform", "true");
 			conf.set("mapreduce.job.jar", "target/mapreduce-hfile-0.0.1-SNAPSHOT.jar");
-			file = new File("E:\\javaworkspacetest\\mapreduce-hfile\\target\\lib");
+			file = new File("E:\\github\\mapreduce-hfile\\target\\lib");
 			File[] files = file.listFiles();
 			for(File fs:files){
 				addTmpJar(fs.getAbsolutePath(), conf);
