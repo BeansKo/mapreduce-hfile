@@ -8,7 +8,7 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
 'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
 LOCATION
-'hdfs://sxlab16:8020/user/fl76/output/hbasefile/'
+'hdfs://sxlab16:8020/user/fl76/output/hbasefile2orc/'
 
 
 

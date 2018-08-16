@@ -28,7 +28,7 @@ import com.beans.ko.etl.mapreduce.utils.HBaseUtils;
 import com.beans.ko.etl.mapreduce.utils.MapReduceUtils;
 
 
-public class HBaseHFile2Orc{
+public class HBaseHFile2OrcNoReduce{
 
 	private static final String SCHEMA_STR = "struct<itemnumber:string,group:string>";
 	
@@ -64,17 +64,17 @@ public class HBaseHFile2Orc{
 			MapReduceUtils.addTmpJar(hbaseFile,conf);
 		}	
 
-		Job job = Job.getInstance(conf,"HBaseHFile2Orc");
-		job.setJarByClass(HBaseHFile2Orc.class);
+		Job job = Job.getInstance(conf,"HBaseHFile2OrcNoReduce");
+		job.setJarByClass(HBaseHFile2OrcNoReduce.class);
 		job.setMapperClass(ReadHFileMapper.class);
-		job.setReducerClass(WriteORCReduce.class);
+//		job.setReducerClass(WriteORCReduce.class);
 		
-		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
-		job.setMapOutputValueClass(KeyValue.class);
+		job.setMapOutputKeyClass(NullWritable.class);
+		job.setMapOutputValueClass(OrcStruct.class);
 		
-//		job.setNumReduceTasks(0);
-		job.setOutputKeyClass(NullWritable.class);
-		job.setOutputValueClass(OrcStruct.class);
+		job.setNumReduceTasks(0);
+//		job.setOutputKeyClass(NullWritable.class);
+//		job.setOutputValueClass(OrcStruct.class);
 		//设置split文件大小
 		job.getConfiguration().setLong("mapred.max.split.size", 122222);
 		//设置mr的输入文件类，提供RecordReader的实现类，把InputSplit读到Mapper中进行处理。
@@ -101,66 +101,33 @@ public class HBaseHFile2Orc{
 	 * @author fl76
 	 *
 	 */
-	public static class ReadHFileMapper extends Mapper<ImmutableBytesWritable,KeyValue,ImmutableBytesWritable,KeyValue>{
+	public static class ReadHFileMapper extends Mapper<ImmutableBytesWritable,KeyValue,NullWritable,OrcStruct>{
 		
-//		private TypeDescription schema = TypeDescription.fromString(SCHEMA_STR);
-//		private OrcStruct orcs = (OrcStruct)OrcStruct.createValue(schema);
-//		private Text textValue;
+		private TypeDescription schema = TypeDescription.fromString(SCHEMA_STR);
+		private OrcStruct orcs = (OrcStruct)OrcStruct.createValue(schema);
+		private Text textValue;
 		@Override
 		protected void map(
 				ImmutableBytesWritable key,
 				KeyValue value,
 				Context context)
 				throws IOException, InterruptedException {
-			context.write(key, value);
-//			boolean flagItem = false;
-//				String fieldName = Bytes.toString(CellUtil.cloneQualifier(value));
-//				if(fieldName.equalsIgnoreCase("ItemNumber")){
-//					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
-//					textValue = new Text(fieldvalue);
-//					orcs.setFieldValue(0, textValue);
-//					flagItem = true;
-//				}else if(fieldName.equalsIgnoreCase("ItemGroupID")){
-//					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
-//					textValue = new Text(fieldvalue);
-//					orcs.setFieldValue(1, textValue);
-//				}
-//			if(flagItem){
-//				context.write(NullWritable.get(), orcs);
-//			}
-		}
-	}
-		
-	public static class WriteORCReduce extends Reducer<ImmutableBytesWritable,KeyValue,NullWritable,OrcStruct>{
-
-		private TypeDescription schema = TypeDescription.fromString(SCHEMA_STR);
-		private OrcStruct orcs = (OrcStruct)OrcStruct.createValue(schema);
-		private Text textValue;
-		@Override
-		protected void reduce(
-				ImmutableBytesWritable key,
-				Iterable<KeyValue> value,
-				Context context)
-				throws IOException, InterruptedException {
 			boolean flagItem = false;
-			for(KeyValue kv:value){
-				String fieldName = Bytes.toString(CellUtil.cloneQualifier(kv));
+				String fieldName = Bytes.toString(CellUtil.cloneQualifier(value));
 				if(fieldName.equalsIgnoreCase("ItemNumber")){
-					String fieldvalue = Bytes.toString(CellUtil.cloneValue(kv));
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(0, textValue);
 					flagItem = true;
 				}else if(fieldName.equalsIgnoreCase("ItemGroupID")){
-					String fieldvalue = Bytes.toString(CellUtil.cloneValue(kv));
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(1, textValue);
 				}
-			}
 			if(flagItem){
 				context.write(NullWritable.get(), orcs);
 			}
 		}
-		
 	}
 	
 	public static String getJarPathForClass(Class<? extends Object> classObj) {
