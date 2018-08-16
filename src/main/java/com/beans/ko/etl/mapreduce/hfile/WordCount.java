@@ -1,6 +1,5 @@
 package com.beans.ko.etl.mapreduce.hfile;
 
-import java.io.File;
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;

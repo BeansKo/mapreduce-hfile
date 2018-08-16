@@ -12,7 +12,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.CombineFileRecordReader;
 import org.apache.hadoop.mapreduce.lib.input.CombineFileSplit;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 /*
  * 实现CombineFilelnputFormat,合并小文件。
@@ -29,7 +28,4 @@ public class HFileCombineInputFormat extends CombineFileInputFormat<ImmutableByt
 			InputSplit split, TaskAttemptContext context) throws IOException {
 		return new CombineFileRecordReader<ImmutableBytesWritable, KeyValue>((CombineFileSplit)split,context,HFileRecordReader.class);
 	}
-
-
-	
 }

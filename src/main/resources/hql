@@ -1,0 +1,23 @@
+CREATE TABLE hfile_test_orc(
+itemnumber string,
+group string)
+ROW FORMAT SERDE
+'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+STORED AS INPUTFORMAT
+'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+OUTPUTFORMAT
+'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+LOCATION
+'hdfs://sxlab16:8020/user/fl76/output/hbasefile/'
+
+
+
+
+CREATE TABLE hfile_test_seq(
+itemnumber string,
+group string)
+ROW FORMAT delimited
+FIELDS terminated by '\t'
+STORED AS sequencefile
+LOCATION
+'hdfs://sxlab16:8020/user/fl76/output/hbasefile2seq/'

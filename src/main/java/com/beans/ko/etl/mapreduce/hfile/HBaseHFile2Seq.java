@@ -8,28 +8,29 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.hsqldb.lib.StringUtil;
 
 import com.beans.ko.etl.mapreduce.utils.HBaseUtils;
 import com.beans.ko.etl.mapreduce.utils.MapReduceUtils;
 
-public class HBaseHFile2Txt extends Configured implements Tool{
+public class HBaseHFile2Seq extends Configured implements Tool{
 
 	public static void main(String[] args) throws Exception {
-		System.exit(ToolRunner.run(new HBaseHFile2Txt(), args));
+		System.exit(ToolRunner.run(new HBaseHFile2Seq(), args));
 	}
 
 	@Override
@@ -63,19 +64,18 @@ public class HBaseHFile2Txt extends Configured implements Tool{
 		}
 		
 		//设置压缩
-//		conf.set("mapreduce.map.output.compress", "true");
-//		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
-//		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.Lz4Codec");
-		Job job = Job.getInstance(conf,"HBaseHFile2Txt");
-		job.setJarByClass(HBaseHFile2Txt.class);
-		job.setMapperClass(ReadHFile2TxtMapper.class);
-		job.setReducerClass(ReadHFile2TxtReducer.class);
+		Job job = Job.getInstance(conf,"HBaseHFile2Seq");
+		job.setJarByClass(HBaseHFile2Seq.class);
+		job.setMapperClass(ReadHFile2SeqMapper.class);
+		job.setReducerClass(ReadHFile2SeqReducer.class);
 		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
 		job.setMapOutputValueClass(KeyValue.class);
-		job.setOutputKeyClass(Text.class);
+		job.setOutputKeyClass(NullWritable.class);
 		job.setOutputValueClass(Text.class);
 		//设置mr的输入文件类，提供RecordReader的实现类，把InputSplit读到Mapper中进行处理。
 		job.setInputFormatClass(HFileCombineInputFormat.class);
+		//设置文件输出类型
+		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		//设置split文件大小
 		job.getConfiguration().setLong("mapred.max.split.size", 22222);
 		SnapshotDescription snapshot = HBaseUtils.getLastestSnapshot(conf,"ecitem:IM_ItemBase");
@@ -83,21 +83,18 @@ public class HBaseHFile2Txt extends Configured implements Tool{
 		for(Path path :pathList){
 			FileInputFormat.addInputPath(job, path);
 		}
-		Path outputDir = new Path("/user/fl76/output/hbasefile2txt");
+		Path outputDir = new Path("/user/fl76/output/hbasefile2seq");
 		FileSystem fs = FileSystem.get(conf);
 		if(fs.exists(outputDir)){
 			fs.delete(outputDir, true);
 		}
-		
-		FileOutputFormat.setOutputPath(job, outputDir);
+
+		SequenceFileOutputFormat.setOutputPath(job, outputDir);
 		
 		return job.waitForCompletion(true)?0:1;
 	}
 	
-	/**
-	 * 操作hbasemappre的输入需要指定为ImmutableBytesWritable格式数据
-	 */
-	public static class ReadHFile2TxtMapper extends Mapper<ImmutableBytesWritable,KeyValue,ImmutableBytesWritable,KeyValue>{
+	public static class ReadHFile2SeqMapper extends Mapper<ImmutableBytesWritable,KeyValue,ImmutableBytesWritable,KeyValue>{
 		
 		@Override
 		protected void map(
@@ -109,17 +106,27 @@ public class HBaseHFile2Txt extends Configured implements Tool{
 		}
 	}
 	
-	public static class ReadHFile2TxtReducer extends Reducer<ImmutableBytesWritable,KeyValue,Text,Text>{
+	public static class ReadHFile2SeqReducer extends Reducer<ImmutableBytesWritable,KeyValue,NullWritable,Text>{
+		private Text outValue = new Text();
 		@Override
 		protected void reduce(
 				ImmutableBytesWritable key,
 				Iterable<KeyValue> value,
 				Context context)
-				throws IOException, InterruptedException {
-			for(Cell kv:value){
+				throws IOException, InterruptedException {		
+			String keyStr = "";
+			String valueStr = "";
+			for(KeyValue kv:value){
 				String fieldName = Bytes.toString(CellUtil.cloneQualifier(kv));
-				String fieldvalue = Bytes.toString(CellUtil.cloneValue(kv));
-				context.write(new Text(fieldName), new Text(fieldvalue));
+				if(fieldName.equalsIgnoreCase("ItemNumber")){
+					keyStr = Bytes.toString(CellUtil.cloneValue(kv));
+				}else if(fieldName.equalsIgnoreCase("ItemGroupID")){
+					valueStr = Bytes.toString(CellUtil.cloneValue(kv));
+				}
+			}
+			if(!StringUtil.isEmpty(keyStr)){
+				outValue.set(keyStr+"\t"+valueStr);
+				context.write(NullWritable.get(), outValue);
 			}
 		}
 	}

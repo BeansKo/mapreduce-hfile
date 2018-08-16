@@ -1,9 +1,11 @@
 package com.beans.ko.etl.mapreduce.hfile;
 
 import java.io.IOException;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
@@ -27,8 +29,7 @@ public class HFileRecordReader extends RecordReader<ImmutableBytesWritable, KeyV
 	private Path path;
 	private int keyNumber = 0;
 	private boolean isLastOne;
-	public HFileRecordReader(CombineFileSplit split,TaskAttemptContext context,
-			Integer index) throws IOException{
+	public HFileRecordReader(CombineFileSplit split,TaskAttemptContext context,Integer index) throws IOException{
 		fs = FileSystem.get(context.getConfiguration());
 		path = split.getPath(index);
 		boolean exist = fs.exists(path);
@@ -56,7 +57,9 @@ public class HFileRecordReader extends RecordReader<ImmutableBytesWritable, KeyV
 	@Override
 	public ImmutableBytesWritable getCurrentKey() throws IOException,
 			InterruptedException {
-		return new ImmutableBytesWritable(scanner.getKeyValue().getRow());
+		CellUtil.cloneRow(scanner.getKeyValue());
+//		return new ImmutableBytesWritable(scanner.getKeyValue().getRow());
+		return new ImmutableBytesWritable(CellUtil.cloneRow(scanner.getKeyValue()));
 	}
 	@Override
 	public KeyValue getCurrentValue() throws IOException, InterruptedException {

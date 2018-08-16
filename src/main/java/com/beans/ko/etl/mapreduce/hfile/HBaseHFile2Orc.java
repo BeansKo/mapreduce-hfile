@@ -6,10 +6,10 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
 import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
@@ -20,18 +20,18 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.orc.OrcConf;
 import org.apache.orc.TypeDescription;
 import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapreduce.OrcOutputFormat;
-
 import com.beans.ko.etl.mapreduce.utils.HBaseUtils;
+import com.beans.ko.etl.mapreduce.utils.MapReduceUtils;
 
 
-public class HBaseHFile{
+public class HBaseHFile2Orc{
 
 	private static final String SCHEMA_STR = "struct<itemnumber:string,group:string>";
+	
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		OrcConf.MAPRED_OUTPUT_SCHEMA.setString(conf, SCHEMA_STR);
@@ -55,30 +55,27 @@ public class HBaseHFile{
 			file = new File("E:\\github\\mapreduce-hfile\\target\\lib");
 			File[] files = file.listFiles();
 			for(File fs:files){
-				addTmpJar(fs.getAbsolutePath(), conf);
+				MapReduceUtils.addTmpJar(fs.getAbsolutePath(), conf);
 			}
 		}else{
 			//linux需要指定第三方jar地址
 			String hbaseFile = getJarPathForClass(KeyValue.class);
 			System.out.println("hbase file:"+hbaseFile);
-			addTmpJar(hbaseFile,conf);
+			MapReduceUtils.addTmpJar(hbaseFile,conf);
 		}	
 
 		//设置压缩
 //		conf.set("mapreduce.map.output.compress", "true");
 //		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
 //		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.Lz4Codec");
-		Job job = Job.getInstance(conf,"HBaseHFile");
-		job.setJarByClass(HBaseHFile.class);
+		Job job = Job.getInstance(conf,"HBaseHFile2Orc");
+		job.setJarByClass(HBaseHFile2Orc.class);
 		job.setMapperClass(ReadHFileMapper.class);
-//		job.setReducerClass(WriteReducer.class);
 		job.setReducerClass(WriteORCReduce.class);
 		
 		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
 		job.setMapOutputValueClass(KeyValue.class);
 		
-//		job.setOutputKeyClass(Text.class);
-//		job.setOutputValueClass(Text.class);
 		job.setOutputKeyClass(NullWritable.class);
 		job.setOutputValueClass(OrcStruct.class);
 		//设置split文件大小
@@ -98,7 +95,6 @@ public class HBaseHFile{
 			fs.delete(outputDir, true);
 		}
 		
-//		FileOutputFormat.setOutputPath(job, outputDir);
 		OrcOutputFormat.setOutputPath(job, outputDir);
 		job.waitForCompletion(true);
 	}
@@ -119,24 +115,7 @@ public class HBaseHFile{
 			context.write(key, value);
 		}
 	}
-	
-	public static class WriteReducer extends Reducer<ImmutableBytesWritable,KeyValue,Text,Text>{
-		@Override
-		protected void reduce(
-				ImmutableBytesWritable key,
-				Iterable<KeyValue> value,
-				Context context)
-				throws IOException, InterruptedException {
-//			Map<String,String> map = new HashMap<String,String>();
-			for(KeyValue kv:value){
-				String fieldName = Bytes.toString(kv.getQualifier());
-				String fieldvalue = Bytes.toString(kv.getValue());
-//				map.put(fieldName, fieldvalue);
-				context.write(new Text(fieldName), new Text(fieldvalue));
-			}
-		}
-	}
-	
+		
 	public static class WriteORCReduce extends Reducer<ImmutableBytesWritable,KeyValue,NullWritable,OrcStruct>{
 
 		private TypeDescription schema = TypeDescription.fromString(SCHEMA_STR);
@@ -150,14 +129,14 @@ public class HBaseHFile{
 				throws IOException, InterruptedException {
 			boolean flagItem = false;
 			for(KeyValue kv:value){
-				String fieldName = Bytes.toString(kv.getQualifier());
+				String fieldName = Bytes.toString(CellUtil.cloneQualifier(kv));
 				if(fieldName.equalsIgnoreCase("ItemNumber")){
-					String fieldvalue = Bytes.toString(kv.getValue());
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(kv));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(0, textValue);
 					flagItem = true;
 				}else if(fieldName.equalsIgnoreCase("ItemGroupID")){
-					String fieldvalue = Bytes.toString(kv.getValue());
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(kv));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(1, textValue);
 				}
@@ -194,16 +173,16 @@ public class HBaseHFile{
 		return null;
 	}
 	
-	public static void addTmpJar(String jarPath, Configuration conf)
-			throws IOException {
-		System.setProperty("path.separator", ":");
-		FileSystem fs = FileSystem.getLocal(conf);
-		String newJarPath = new Path(jarPath).makeQualified(fs).toString();
-		String tmpJars = conf.get("tmpjars");
-		if (tmpJars == null || tmpJars.length() == 0) {
-			conf.set("tmpjars", newJarPath);
-		} else {
-			conf.set("tmpjars", tmpJars + "," + newJarPath);
-		}
-	}
+//	public static void addTmpJar(String jarPath, Configuration conf)
+//			throws IOException {
+//		System.setProperty("path.separator", ":");
+//		FileSystem fs = FileSystem.getLocal(conf);
+//		String newJarPath = new Path(jarPath).makeQualified(fs).toString();
+//		String tmpJars = conf.get("tmpjars");
+//		if (tmpJars == null || tmpJars.length() == 0) {
+//			conf.set("tmpjars", newJarPath);
+//		} else {
+//			conf.set("tmpjars", tmpJars + "," + newJarPath);
+//		}
+//	}
 }
