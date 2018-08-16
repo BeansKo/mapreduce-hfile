@@ -48,6 +48,12 @@
 		    <artifactId>orc-mapreduce</artifactId>
 		    <version>${orc.version}</version>
 		</dependency>
+		<!-- Yaml -->
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.21</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

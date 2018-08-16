@@ -1,0 +1,19 @@
+---
+#hbase to hive config
+
+mapreduce:
+
+  hadoopUserName: fl76
+  hbaseSnapshotPrefix: fl76_test
+  libPathLocal: target/lib
+  libPathRemote: /user/fl76/lib
+  # only for dev
+  jobJar: target/dev-test-0.0.1.jar
+  
+hive: 
+
+  jdbc: 
+    driverClassName: org.apache.hive.jdbc.HiveDriver
+    url: jdbc:hive2://10.16.238.79:10000/default
+    username: fl76
+    password: 
