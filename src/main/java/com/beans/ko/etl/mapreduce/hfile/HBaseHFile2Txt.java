@@ -3,9 +3,12 @@ package com.beans.ko.etl.mapreduce.hfile;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -56,17 +59,19 @@ public class HBaseHFile2Txt extends Configured implements Tool{
 			//linux需要指定第三方jar地址
 			file = new File("/var/lib/ECTalend/DataFeedGDV/job");
 		}
-		File[] files = file.listFiles();
-		for(File fs:files){
-			//增加tmpjar,第三方依赖
-			MapReduceUtils.addTmpJar(fs.getAbsolutePath(), conf);
-		}
+//		File[] files = file.listFiles();
+//		for(File fs:files){
+//			//增加tmpjar,第三方依赖
+//			MapReduceUtils.addTmpJar(fs.getAbsolutePath(), conf);
+//		}
 		
 		//设置压缩
 //		conf.set("mapreduce.map.output.compress", "true");
 //		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
 //		conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.Lz4Codec");
 		Job job = Job.getInstance(conf,"HBaseHFile2Txt");
+		
+		
 		job.setJarByClass(HBaseHFile2Txt.class);
 		job.setMapperClass(ReadHFile2TxtMapper.class);
 		job.setReducerClass(ReadHFile2TxtReducer.class);
@@ -87,6 +92,11 @@ public class HBaseHFile2Txt extends Configured implements Tool{
 		FileSystem fs = FileSystem.get(conf);
 		if(fs.exists(outputDir)){
 			fs.delete(outputDir, true);
+		}
+		
+		List<Path> paths = Stream.of(fs.listStatus(new Path("/user/fl76/lib"))).map(FileStatus::getPath).collect(Collectors.toList());
+		for(Path path:paths){
+			job.addFileToClassPath(path);
 		}
 		
 		FileOutputFormat.setOutputPath(job, outputDir);

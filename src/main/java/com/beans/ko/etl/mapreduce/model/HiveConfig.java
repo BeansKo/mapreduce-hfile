@@ -3,7 +3,7 @@ package com.beans.ko.etl.mapreduce.model;
 public class HiveConfig {
 	
 	private HiveJdbcConfig jdbc;
-	
+	private HiveTableConfig table;
 	
 	public HiveJdbcConfig getJdbc() {
 		return jdbc;
@@ -14,6 +14,14 @@ public class HiveConfig {
 		this.jdbc = jdbc;
 	}
 
+	public HiveTableConfig getTable() {
+		return table;
+	}
+
+
+	public void setTable(HiveTableConfig table) {
+		this.table = table;
+	}
 
 	public static class HiveJdbcConfig{
 		private String driverClassName;
@@ -46,5 +54,24 @@ public class HiveConfig {
 		public void setPassword(String password) {
 			this.password = password;
 		}
+	}
+
+	public static class HiveTableConfig{
+		private String outputPathRemote;
+		private String partitionColumn;
+		
+		public String getOutputPathRemote() {
+			return outputPathRemote;
+		}
+		public void setOutputPathRemote(String outputPathRemote) {
+			this.outputPathRemote = outputPathRemote;
+		}
+		public String getPartitionColumn() {
+			return partitionColumn;
+		}
+		public void setPartitionColumn(String partitionColumn) {
+			this.partitionColumn = partitionColumn;
+		}
+		
 	}
 }

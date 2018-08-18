@@ -17,11 +17,13 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<hadoop.version>2.6.0-cdh5.8.3</hadoop.version>
+		<hbase.version>1.2.0-cdh5.8.3</hbase.version>
+		<hive.version>1.1.0-cdh5.8.3</hive.version>
 		<orc.version>1.5.2</orc.version>
 	</properties>
 
 	<dependencies>
-		<!-- Hadoop Client -->
+		<!-- Hadoop -->
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-client</artifactId>
@@ -30,23 +32,30 @@
 		<dependency>
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase-client</artifactId>
-			<version>1.2.0-cdh5.8.3</version>
+			<version>${hbase.version}</version>
 		</dependency>
+		<!-- HBase -->
 		<dependency>
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase-server</artifactId>
 			<version>1.2.0-cdh5.8.3</version>
 		</dependency>
+		<!-- Hive -->
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-jdbc</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
 		<!-- ORC -->
 		<dependency>
-		    <groupId>org.apache.orc</groupId>
-		    <artifactId>orc-core</artifactId>
-		    <version>${orc.version}</version>
+			<groupId>org.apache.orc</groupId>
+			<artifactId>orc-core</artifactId>
+			<version>${orc.version}</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.orc</groupId>
-		    <artifactId>orc-mapreduce</artifactId>
-		    <version>${orc.version}</version>
+			<groupId>org.apache.orc</groupId>
+			<artifactId>orc-mapreduce</artifactId>
+			<version>${orc.version}</version>
 		</dependency>
 		<!-- Yaml -->
 		<dependency>
@@ -65,33 +74,14 @@
 
 	<build>
 		<plugins>
-  			<!-- <plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>com.beans.ko.etl.mapreduce.hfile.WordCount</mainClass>
-						</manifest>
-						<manifestEntries>
-							<Class-Path>.</Class-Path>
-						</manifestEntries>
-					</archive>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-					</plugin> -->
-		
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-assembly-plugin</artifactId> 
+				<configuration> <archive> <manifest> <mainClass>com.beans.ko.etl.mapreduce.hfile.WordCount</mainClass> 
+				</manifest> <manifestEntries> <Class-Path>.</Class-Path> </manifestEntries> 
+				</archive> <descriptorRefs> <descriptorRef>jar-with-dependencies</descriptorRef> 
+				</descriptorRefs> </configuration> <executions> <execution> <id>make-assembly</id> 
+				<phase>package</phase> <goals> <goal>single</goal> </goals> </execution> 
+				</executions> </plugin> -->
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
@@ -100,7 +90,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>com.beans.ko.etl.mapreduce.hfile.HBaseHFile</mainClass>
+							<mainClass>com.beans.ko.etl.mapreduce.hfile.HBaseHFile2Txt</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

@@ -17,3 +17,15 @@ hive:
     url: jdbc:hive2://10.16.238.79:10000/default
     username: fl76
     password: 
+  table:
+    outputPathRemote: /user/fl76/hive/
+    partitionColumn: dt
+    
+tables:
+  - hbaseTableName: ecitem:IM_ItemBase
+    hiveTableName: IM_ItemBase
+    maxSplitSize: 100
+    reduceNumber: 100
+    columns:
+      - { columnFamily: "BaseInfo", qualifier: "ItemNumber", type: "string", hiveColumn: "ItemNumber" }
+      - { columnFamily: "BaseInfo", qualifier: "ItemGroupID", type: "int", hiveColumn: "ItemGroupID" }
