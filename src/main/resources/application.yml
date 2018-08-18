@@ -8,7 +8,7 @@ mapreduce:
   libPathLocal: target/lib
   libPathRemote: /user/fl76/lib
   # only for dev
-  jobJar: target/dev-test-0.0.1.jar
+  jobJar: target/mapreduce-hfile-0.0.1-SNAPSHOT.jar
   
 hive: 
 

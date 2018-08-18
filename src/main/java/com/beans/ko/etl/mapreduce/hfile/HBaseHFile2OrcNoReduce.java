@@ -154,17 +154,4 @@ public class HBaseHFile2OrcNoReduce{
 
 		return null;
 	}
-	
-//	public static void addTmpJar(String jarPath, Configuration conf)
-//			throws IOException {
-//		System.setProperty("path.separator", ":");
-//		FileSystem fs = FileSystem.getLocal(conf);
-//		String newJarPath = new Path(jarPath).makeQualified(fs).toString();
-//		String tmpJars = conf.get("tmpjars");
-//		if (tmpJars == null || tmpJars.length() == 0) {
-//			conf.set("tmpjars", newJarPath);
-//		} else {
-//			conf.set("tmpjars", tmpJars + "," + newJarPath);
-//		}
-//	}
 }
