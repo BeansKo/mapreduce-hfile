@@ -15,10 +15,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -69,7 +72,7 @@ public class HBaseToHive {
 	private static final String CONFIG_HIVE_TABLE_PARTITION = "fullexport.hive.table.partition";
 	private static final String CONFIG_HIVE_TABLE_PARTITION_COLUMN = "fullexport.hive.table.partitionColumn";
 	private static final String CONFIG_HBASE_TO_TABLE_COLUMN_MAP = "fullexport.hbase.to.hive.column.map";
-	
+	private static final Log log = LogFactory.getLog(HBaseToHive.class);
 	private static Configuration config;
 	static {
 		/**
@@ -152,6 +155,12 @@ public class HBaseToHive {
 					new Path(partitionPath),
 					libPathOnHdfs);
 			job.waitForCompletion(true);
+			
+			TimeUnit.SECONDS.sleep(60);
+			String tableNames = job.getConfiguration().get(CONFIG_HIVE_TABLE_NAME);
+			String partitionPaths = String.format(partitionPathFormat, tableName);
+			addHivePartition(partitionPaths,tableNames,partitionColumn, partition);
+			System.out.println("finish");
 		}
 
 	}
@@ -195,6 +204,18 @@ public class HBaseToHive {
 				partitionColumn);
 		HiveUtils.executeQuery(createSql);
 		System.out.println(createSql);
+	}
+	
+	/**
+	 * 添加新的Partition
+	 */
+	private static void addHivePartition(String partitionPath, String tableName, String partitionColumn, String partition) throws Exception {
+		String partitionDef = partitionColumn + "='" + partition;
+		String dropPartition = "alter table fl76_" + tableName.toLowerCase() + " drop partition (" + partitionDef + "')";
+		String addPartition = "alter table fl76_" + tableName.toLowerCase() + " add partition (" + partitionDef + "')\n"
+				+ "location '" + partitionPath + "'";
+		HiveUtils.executeQuery(dropPartition);
+		HiveUtils.executeQuery(addPartition);
 	}
 
 	/**
@@ -330,11 +351,11 @@ public class HBaseToHive {
 			String colName = this.hbaseToHiveColumnMap.get(columnFamily + ":" + qualifier);
 			if(colName != null) {
 				byte[] colValue = CellUtil.cloneValue(value);
-				System.out.println("mapper kv:"+Bytes.toString(colValue));
+				log.debug("mapper kv:"+colName+":" + Bytes.toString(colValue));
+				System.out.println("mapper kv:"+colName+":" + Bytes.toString(colValue));
 				String rowkey = Bytes.toString(CellUtil.cloneRow(value));
 				textKey.set(rowkey);
 				mapValue.put(new Text(colName), new BytesWritable(colValue));
-				System.out.println("mapper kv:"+colName + Bytes.toString(colValue));
 				context.write(textKey, mapValue);
 			}
 		}
