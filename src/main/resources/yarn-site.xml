@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<configuration>
+	<property>
+		<name>yarn.resourcemanager.hostname</name>
+		<value>sxlab16</value>
+	</property>
+	<property>
+		<name>yarn.nodemanager.aux-services</name>
+		<value>mapreduce_shuffle</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.address</name>
+		<value>sxlab16:8032</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.scheduler.address</name>
+		<value>sxlab16:8030</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.resource-tracker.address</name>
+		<value>sxlab16:8031</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.admin.address</name>
+		<value>sxlab16:8033</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.webapp.address</name>
+		<value>sxlab16:8088</value>
+	</property>
+</configuration>

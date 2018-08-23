@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<configuration>
+	<property>
+		<name>mapreduce.framework.name</name>
+		<value>yarn</value>
+	</property>
+	<property>
+		<name>mapreduce.jobtracker.http.address</name>
+		<value>sxlab16:50030</value>
+	</property>
+	<property>
+		<name>mapreduce.jobhistory.address</name>
+		<value>sxlab16:10020</value>
+	</property>
+	<property>
+		<name>mapreduce.jobhistory.webapp.address</name>
+		<value>sxlab16:19888</value>
+	</property>
+	<property>
+		<name>mapred.job.tracker</name>
+		<value>http://sxlab16:9001</value>
+	</property>
+</configuration>
+
