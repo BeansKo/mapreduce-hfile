@@ -29,3 +29,4 @@ tables:
     columns:
       - { columnFamily: "BaseInfo", qualifier: "ItemNumber", type: "string", hiveColumn: "ItemNumber" }
       - { columnFamily: "BaseInfo", qualifier: "ItemGroupID", type: "int", hiveColumn: "ItemGroupID" }
+      - { columnFamily: "ImageInfo", qualifier: "IC_02", type: "string", hiveColumn: "IC_02" }

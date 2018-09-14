@@ -5,35 +5,36 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
-import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
+import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
+import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.orc.OrcConf;
 import org.apache.orc.TypeDescription;
 import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapreduce.OrcOutputFormat;
-import com.beans.ko.etl.mapreduce.utils.HBaseUtils;
+
 import com.beans.ko.etl.mapreduce.utils.MapReduceUtils;
 
+public class TableInput2Orc {
 
-public class HBaseHFile2OrcNoReduce{
-
-	private static final String SCHEMA_STR = "struct<itemnumber:string,group:string,ic:string>";
+private static final String SCHEMA_STR = "struct<itemnumber:string,group:string,ic:string>";
 	
 	public static void main(String[] args) throws Exception {
-		Configuration conf = new Configuration();
+		Configuration conf = HBaseConfiguration.create();
 		OrcConf.MAPRED_OUTPUT_SCHEMA.setString(conf, SCHEMA_STR);
 		conf.set("hbase.zookeeper.quorum","sxlab16,sxlab17,sxlab18");
 		conf.set("hbase.zookeeper.property.clientPort", "2181");
@@ -64,29 +65,29 @@ public class HBaseHFile2OrcNoReduce{
 			MapReduceUtils.addTmpJar(hbaseFile,conf);
 		}	
 
-		Job job = Job.getInstance(conf,"HBaseHFile2OrcNoReduce");
-		job.setJarByClass(HBaseHFile2OrcNoReduce.class);
-		job.setMapperClass(ReadHFileMapper.class);
-//		job.setReducerClass(WriteORCReduce.class);
+	    conf.addResource("hbase-site.xml");
+		Job job = Job.getInstance(conf,"TableInput2OrcNoReduce");
+		job.setJarByClass(TableInput2Orc.class);
+		job.setMapperClass(TableInputMapper.class);
+
 		
 		job.setMapOutputKeyClass(NullWritable.class);
 		job.setMapOutputValueClass(OrcStruct.class);
 		
-		job.setNumReduceTasks(0);
-//		job.setOutputKeyClass(NullWritable.class);
-//		job.setOutputValueClass(OrcStruct.class);
-		//设置split文件大小
-		job.getConfiguration().setLong("mapred.max.split.size", 122222);
-		//设置mr的输入文件类，提供RecordReader的实现类，把InputSplit读到Mapper中进行处理。
-		job.setInputFormatClass(HFileCombineInputFormat.class);
-		job.setOutputFormatClass(OrcOutputFormat.class);
-		SnapshotDescription snapshot = HBaseUtils.getLastestSnapshot(conf,"ecitem:IM_ItemBase");
-		List<Path> pathList = HBaseUtils.getSnapshotPaths(conf, snapshot.getName(),"BaseInfo,ImageInfo");
-		for(Path path :pathList){
-			FileInputFormat.addInputPath(job, path);
-		}
 		
-		Path outputDir = new Path("/user/fl76/output/hbasefile2orc");
+		job.setNumReduceTasks(0);
+		String table = "ecitem:IM_ItemBase";
+
+
+		Scan scan = new Scan();
+		scan.setCaching(10000);
+		scan.setCacheBlocks(false);
+		TableMapReduceUtil.initTableMapperJob(table,scan,TableInputMapper.class,NullWritable.class,OrcStruct.class,job);
+
+		job.setOutputFormatClass(OrcOutputFormat.class);
+
+		
+		Path outputDir = new Path("/user/fl76/output/tableinput2orc");
 		FileSystem fs = FileSystem.get(conf);
 		if(fs.exists(outputDir)){
 			fs.delete(outputDir, true);
@@ -101,40 +102,39 @@ public class HBaseHFile2OrcNoReduce{
 	 * @author fl76
 	 *
 	 */
-	public static class ReadHFileMapper extends Mapper<ImmutableBytesWritable,KeyValue,NullWritable,OrcStruct>{
-		
+	public static class TableInputMapper extends TableMapper<NullWritable,OrcStruct>{
+
 		private TypeDescription schema = TypeDescription.fromString(SCHEMA_STR);
 		private OrcStruct orcs = (OrcStruct)OrcStruct.createValue(schema);
 		private Text textValue;
 		@Override
 		protected void map(
 				ImmutableBytesWritable key,
-				KeyValue value,
+				Result value,
 				Context context)
 				throws IOException, InterruptedException {
-			System.out.println(orcs.getSchema());
-			boolean flagItem = false;
-				String fieldName = Bytes.toString(CellUtil.cloneQualifier(value));
-				System.out.println("Map Field:"+fieldName);
-				if(fieldName.equalsIgnoreCase("ItemNumber")){
-					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
+			if(value == null || value.isEmpty()) return;
+			
+			for(Cell cell:value.listCells()){
+				String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
+				if(qualifier.equalsIgnoreCase("ItemNumber")){
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(cell));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(0, textValue);
-					flagItem = true;
-				}else if(fieldName.equalsIgnoreCase("ItemGroupID")){
-					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
+				} else if(qualifier.equalsIgnoreCase("ItemGroupID")){
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(cell));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(1, textValue);
 				}
-				else if(fieldName.equalsIgnoreCase("IC_02")){
-					String fieldvalue = Bytes.toString(CellUtil.cloneValue(value));
+				else if(qualifier.equalsIgnoreCase("IC_02")){
+					String fieldvalue = Bytes.toString(CellUtil.cloneValue(cell));
 					textValue = new Text(fieldvalue);
 					orcs.setFieldValue(2, textValue);
 				}
-//			if(flagItem){
-				context.write(NullWritable.get(), orcs);
-//			}
+			}
+			context.write(NullWritable.get(), orcs);
 		}
+
 	}
 	
 	public static String getJarPathForClass(Class<? extends Object> classObj) {

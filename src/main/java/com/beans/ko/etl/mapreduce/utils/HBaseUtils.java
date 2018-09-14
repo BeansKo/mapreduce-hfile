@@ -12,6 +12,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -210,32 +211,34 @@ public class HBaseUtils {
 		conf.set("hbase.client.scanner.timeout.period", "720000");// 6min
 		conf.set("hbase.regionserver.lease.period", "720000");// //6min
 		conf.set("hbase.client.write.buffer", "500");
+		conf.set("hbase.regionserver.global.memstore.upperLimit", "0.45");
 		try {
 			logger.info("----------begin---------------");
 			long startTime = System.currentTimeMillis();
 			HBaseUtils.createSnapshot(conf, startTime, "ecitem:IM_ItemBase");
-//			SnapshotDescription snapshot = HBaseUtils.getLastestSnapshot(conf,"ecitem:IM_ItemBase");
-//			if(snapshot == null){
-//				logger.error("snapshot is null");
-//				return;
-//			}
-//			
-//			logger.info(snapshot.getName());
-//			List<Path> pathList = getSnapshotPaths(conf, snapshot.getName(),"BaseInfo");
-//			Reference reference = Reference.createTopReference("0".getBytes());
-//			FileSystem fs = FileSystem.get(conf);
-//			HalfStoreFileReader reader = new HalfStoreFileReader(fs,pathList.get(0),new CacheConfig(conf),
-//					reference,conf);
-//			HFileScanner scanner = reader.getScanner(false, false);
-//			reader.loadFileInfo();
-//			scanner.seekTo();
-//			while(scanner.next()){
-//				logger.info("key:"+scanner.getKey());
-//				Cell cell = scanner.getKeyValue();
-//				logger.info("family:"+Bytes.toString(cell.getFamily()));
-//				logger.info("qualifior:"+Bytes.toString(cell.getQualifier()));
-//				logger.info("value:"+Bytes.toString(cell.getValue()));
-//			}
+			SnapshotDescription snapshot = HBaseUtils.getLastestSnapshot(conf,"ecitem:IM_ItemBase");
+			if(snapshot == null){
+				logger.error("snapshot is null");
+				return;
+			}
+			
+			logger.info(snapshot.getName());
+			List<Path> pathList = getSnapshotPaths(conf, snapshot.getName(),"BaseInfo");
+			Reference reference = Reference.createTopReference("0".getBytes());
+			FileSystem fs = FileSystem.get(conf);
+			HalfStoreFileReader reader = new HalfStoreFileReader(fs,pathList.get(0),new CacheConfig(conf),
+					reference,conf);
+			HFileScanner scanner = reader.getScanner(false, false);
+			reader.loadFileInfo();
+			scanner.seekTo();
+			while(scanner.next()){
+				logger.info("key:"+scanner.getKey());
+				Cell cell = scanner.getKeyValue();
+				logger.info("rowkey:"+Bytes.toString(CellUtil.cloneRow(cell)));
+				logger.info("family:"+Bytes.toString(cell.getFamily()));
+				logger.info("qualifior:"+Bytes.toString(cell.getQualifier()));
+				logger.info("value:"+Bytes.toString(cell.getValue()));
+			}
 //			
 		} catch (IOException e) {
 			e.printStackTrace();

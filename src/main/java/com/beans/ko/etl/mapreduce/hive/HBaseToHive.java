@@ -156,7 +156,7 @@ public class HBaseToHive {
 					libPathOnHdfs);
 			job.waitForCompletion(true);
 			
-			TimeUnit.SECONDS.sleep(60);
+			TimeUnit.SECONDS.sleep(10);
 			String tableNames = job.getConfiguration().get(CONFIG_HIVE_TABLE_NAME);
 			String partitionPaths = String.format(partitionPathFormat, tableName);
 			addHivePartition(partitionPaths,tableNames,partitionColumn, partition);
