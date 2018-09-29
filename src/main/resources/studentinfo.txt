@@ -1,0 +1,5 @@
+1	frank	true	student
+2	alan	false	teacher
+3	byran	true	teacher
+4	foster	false	stucent
+4	tiny	false	sudent
